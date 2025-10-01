@@ -82,6 +82,22 @@
             color: #999;
             font-style: italic;
         }
+
+        @media (max-width: 768px) {
+            .input-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .font-size-control {
+                justify-content: center;
+                margin-top: 10px;
+            }
+
+            #text-input {
+                margin-bottom: 0;
+            }
+        }
     </style>
 </head>
 <body>
@@ -132,11 +148,14 @@
             }
 
             async init() {
+                console.log('Initializing FontShowcase...');
                 await this.loadFonts();
+                console.log('Fonts array after loading:', this.fonts);
                 this.createPreviews();
                 this.textInput.addEventListener('input', () => this.updatePreviews());
                 this.fontSizeSelector.addEventListener('change', () => this.updatePreviews());
                 this.updatePreviews();
+                console.log('FontShowcase initialization complete');
             }
 
             async loadFonts() {
@@ -145,9 +164,13 @@
                     const response = await fetch('./fonts.json');
                     const data = await response.json();
                     
-                    for (const fileName of data.fonts) {
-                        await this.loadFont(fileName);
-                    }
+                    console.log('Found fonts in JSON:', data.fonts);
+                    
+                    // Load all fonts in parallel, but don't let one failure stop the others
+                    const fontPromises = data.fonts.map(fileName => this.loadFont(fileName));
+                    await Promise.allSettled(fontPromises);
+                    
+                    console.log('Total fonts loaded:', this.fonts.length);
                 } catch (error) {
                     console.error('Failed to load fonts list:', error);
                     // Fallback: load known fonts
@@ -156,28 +179,36 @@
             }
 
             async loadFont(fileName) {
+                const fontName = fileName.replace('.woff2', '').replace('-webfont', '');
+                const fontFamily = `font-${fontName}`;
+                
+                console.log(`Attempting to load font: ${fileName} as ${fontFamily}`);
+                
                 try {
-                    const fontName = fileName.replace('.woff2', '').replace('-webfont', '');
-                    const fontFamily = `font-${fontName}`;
-                    
                     // Create CSS font-face rule
                     const fontFace = new FontFace(fontFamily, `url('./woff2/${fileName}')`);
                     await fontFace.load();
                     document.fonts.add(fontFace);
                     
-                    this.fonts.push({
-                        name: fontName,
-                        family: fontFamily,
-                        fileName: fileName
-                    });
-                    
-                    console.log(`Loaded font: ${fontName}`);
+                    console.log(`Successfully loaded font: ${fontName}`);
                 } catch (error) {
-                    console.error(`Failed to load font ${fileName}:`, error);
+                    console.warn(`Failed to load font ${fileName}, but still adding to list:`, error);
                 }
+                
+                // Always add the font to the list, even if loading failed
+                // This ensures all fonts show up in the preview, even if they fall back to system fonts
+                this.fonts.push({
+                    name: fontName,
+                    family: fontFamily,
+                    fileName: fileName
+                });
+                
+                console.log(`Font ${fontName} added to fonts array`);
             }
 
             createPreviews() {
+                console.log('Creating previews for', this.fonts.length, 'fonts:', this.fonts);
+                
                 if (this.fonts.length === 0) {
                     this.previewsContainer.innerHTML = '<div class="loading">No fonts found</div>';
                     return;
@@ -185,7 +216,9 @@
 
                 this.previewsContainer.innerHTML = '';
                 
-                this.fonts.forEach(font => {
+                this.fonts.forEach((font, index) => {
+                    console.log(`Creating preview ${index + 1} for font:`, font);
+                    
                     const previewDiv = document.createElement('div');
                     previewDiv.className = 'font-preview';
                     
@@ -201,7 +234,11 @@
                     previewDiv.appendChild(nameDiv);
                     previewDiv.appendChild(textDiv);
                     this.previewsContainer.appendChild(previewDiv);
+                    
+                    console.log(`Preview ${index + 1} created and added to DOM`);
                 });
+                
+                console.log('All previews created. Total DOM previews:', document.querySelectorAll('.font-preview').length);
             }
 
             updatePreviews() {

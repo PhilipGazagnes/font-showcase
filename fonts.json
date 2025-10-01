@@ -1,5 +1,7 @@
 {
   "fonts": [
-    "amelies-webfont.woff2"
+    "amelies-webfont.woff2",
+    "blackjar-webfont.woff2",
+    "sagesans-regular-webfont.woff2"
   ]
 }
