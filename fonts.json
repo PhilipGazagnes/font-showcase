@@ -2,6 +2,10 @@
   "fonts": [
     "amelies-webfont.woff2",
     "blackjar-webfont.woff2",
-    "sagesans-regular-webfont.woff2"
+    "sagesans-regular-webfont.woff2",
+    "wortl-b-webfont.woff2",
+    "wortl-l-webfont.woff2",
+    "wortl-r-webfont.woff2",
+    "wortl-sb-webfont.woff2"
   ]
 }
