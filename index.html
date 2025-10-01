@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Font Showcase</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .input-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .input-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        #text-input {
+            flex: 1;
+            padding: 15px;
+            font-size: 18px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+
+        .font-size-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+
+        #font-size-selector {
+            padding: 10px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            background: white;
+        }
+
+        .font-preview {
+            background: white;
+            margin-bottom: 20px;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .font-name {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .preview-text {
+            font-size: 24px;
+            line-height: 1.4;
+            min-height: 32px;
+            word-wrap: break-word;
+        }
+
+        .loading {
+            color: #999;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Font Showcase</h1>
+        <p>Type some text to see how it looks in different fonts</p>
+    </div>
+
+    <div class="input-section">
+        <div class="input-controls">
+            <input type="text" id="text-input" placeholder="Type your text here..." value="The quick brown fox jumps over the lazy dog">
+            <div class="font-size-control">
+                <label for="font-size-selector">Size:</label>
+                <select id="font-size-selector">
+                    <option value="12">12px</option>
+                    <option value="16">16px</option>
+                    <option value="20">20px</option>
+                    <option value="24" selected>24px</option>
+                    <option value="28">28px</option>
+                    <option value="32">32px</option>
+                    <option value="36">36px</option>
+                    <option value="40">40px</option>
+                    <option value="44">44px</option>
+                    <option value="48">48px</option>
+                    <option value="52">52px</option>
+                    <option value="56">56px</option>
+                    <option value="60">60px</option>
+                    <option value="64">64px</option>
+                    <option value="68">68px</option>
+                    <option value="72">72px</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div id="font-previews">
+        <div class="loading">Loading fonts...</div>
+    </div>
+
+    <script>
+        class FontShowcase {
+            constructor() {
+                this.textInput = document.getElementById('text-input');
+                this.fontSizeSelector = document.getElementById('font-size-selector');
+                this.previewsContainer = document.getElementById('font-previews');
+                this.fonts = [];
+                this.init();
+            }
+
+            async init() {
+                await this.loadFonts();
+                this.createPreviews();
+                this.textInput.addEventListener('input', () => this.updatePreviews());
+                this.fontSizeSelector.addEventListener('change', () => this.updatePreviews());
+                this.updatePreviews();
+            }
+
+            async loadFonts() {
+                try {
+                    // Get list of font files from the woff2 directory
+                    const response = await fetch('./woff2/');
+                    const text = await response.text();
+                    
+                    // Parse the directory listing to find .woff2 files
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(text, 'text/html');
+                    const links = doc.querySelectorAll('a');
+                    
+                    for (const link of links) {
+                        const href = link.getAttribute('href');
+                        if (href && href.endsWith('.woff2')) {
+                            await this.loadFont(href);
+                        }
+                    }
+                } catch (error) {
+                    console.log('Directory listing not available, loading known fonts...');
+                    // Fallback: load known fonts
+                    await this.loadFont('amelies-webfont.woff2');
+                }
+            }
+
+            async loadFont(fileName) {
+                try {
+                    const fontName = fileName.replace('.woff2', '').replace('-webfont', '');
+                    const fontFamily = `font-${fontName}`;
+                    
+                    // Create CSS font-face rule
+                    const fontFace = new FontFace(fontFamily, `url('./woff2/${fileName}')`);
+                    await fontFace.load();
+                    document.fonts.add(fontFace);
+                    
+                    this.fonts.push({
+                        name: fontName,
+                        family: fontFamily,
+                        fileName: fileName
+                    });
+                    
+                    console.log(`Loaded font: ${fontName}`);
+                } catch (error) {
+                    console.error(`Failed to load font ${fileName}:`, error);
+                }
+            }
+
+            createPreviews() {
+                if (this.fonts.length === 0) {
+                    this.previewsContainer.innerHTML = '<div class="loading">No fonts found</div>';
+                    return;
+                }
+
+                this.previewsContainer.innerHTML = '';
+                
+                this.fonts.forEach(font => {
+                    const previewDiv = document.createElement('div');
+                    previewDiv.className = 'font-preview';
+                    
+                    const nameDiv = document.createElement('div');
+                    nameDiv.className = 'font-name';
+                    nameDiv.textContent = font.name;
+                    
+                    const textDiv = document.createElement('div');
+                    textDiv.className = 'preview-text';
+                    textDiv.style.fontFamily = font.family;
+                    textDiv.dataset.fontFamily = font.family;
+                    
+                    previewDiv.appendChild(nameDiv);
+                    previewDiv.appendChild(textDiv);
+                    this.previewsContainer.appendChild(previewDiv);
+                });
+            }
+
+            updatePreviews() {
+                const inputText = this.textInput.value || 'Type some text above...';
+                const fontSize = this.fontSizeSelector.value + 'px';
+                const previewTexts = document.querySelectorAll('.preview-text');
+                
+                previewTexts.forEach(textDiv => {
+                    textDiv.textContent = inputText;
+                    textDiv.style.fontSize = fontSize;
+                });
+            }
+        }
+
+        // Initialize the font showcase when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new FontShowcase();
+        });
+    </script>
+</body>
+</html>
